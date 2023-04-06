@@ -12,49 +12,23 @@ import (
 )
 
 
-// func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
-//     return func(w http.ResponseWriter, r *http.Request) {
-//         // set the Access-Control-Allow-Origin header to allow requests from any origin
-//         w.Header().Set("Access-Control-Allow-Origin", "*")
-
-//         // set the Access-Control-Allow-Methods header to allow GET and POST requests
-//         w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
-
-//         // set the Access-Control-Allow-Headers header to allow Content-Type and Authorization headers
-//         w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-//         // if the request method is OPTIONS, return immediately with a 200 status code
-//         if r.Method == "OPTIONS" {
-//             w.WriteHeader(http.StatusOK)
-//             return
-//         }
-
-//         // call the next handler function
-//         next(w, r)
-//     }
-// }
-
-
-
-
-
 func findIndex(arr []string, val string) int {
-    for i, v := range arr {
-        if v == val {
-            return i
-        }
-    }
-    return -1
+	for i, v := range arr {
+		if v == val {
+			return i
+		}
+	}
+	return -1
 }
 
 func search(arr []string, word string) []string {
 	var results []string
-	splited_word := strings.Split(word,"")
-	for i := 0;i < len(arr);i++ {
-		var score float32 = 0;
-		each := strings.Split(arr[i],"")
-		for j := 0;j < len(splited_word);j++ {
-			var index int = findIndex(each,splited_word[j])
+	splited_word := strings.Split(word, "")
+	for i := 0; i < len(arr); i++ {
+		var score float32 = 0
+		each := strings.Split(arr[i], "")
+		for j := 0; j < len(splited_word); j++ {
+			var index int = findIndex(each, splited_word[j])
 			if index != -1 {
 				score += 1
 				each[index] = ""
@@ -76,7 +50,18 @@ func search(arr []string, word string) []string {
 
 		if score >= 0.8 {
 			results = append(results, arr[i])
-			
+
+		} else {
+			length := len(arr[i])
+			Wlength := len(word)
+			if length >= 3 * 4 && Wlength >=  3 * 4 {
+				if arr[i][length - 3 * 4:length] == word[Wlength - 3 * 4:Wlength] {
+					results = append(results, arr[i])
+				} 
+				// else if arr[i][length - 3 * 3:length] == word[Wlength - 3 * 3:Wlength] {
+				// 	results = append(results, arr[i])
+				// }
+			}
 		}
 
 	}
@@ -84,14 +69,11 @@ func search(arr []string, word string) []string {
 	return results
 }
 
-// func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
-//     http.ServeFile(w, r, r.URL.Path[1:])
-// }
-
 func main() {
+	fmt.Println("server is started")
 	var arr []string
-	
-	uri := "mongodb://localhost:27017"
+
+	uri := "mongodb+srv://sosotae:SosoTaENaoko;@sword.yah6gsy.mongodb.net/?retryWrites=true&w=majority"
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 	if err != nil {
 		panic(err)
@@ -105,7 +87,6 @@ func main() {
 	db := client.Database("texts")
 	coll := db.Collection("words")
 
-
 	cursor, err := coll.Find(context.TODO(), bson.D{})
 	if err != nil {
 		panic(err)
@@ -118,7 +99,7 @@ func main() {
 			panic(err)
 		}
 		word := result["word"].(string)
-		arr = append(arr,word)
+		arr = append(arr, word)
 	}
 	if err := cursor.Err(); err != nil {
 		panic(err)
@@ -126,29 +107,27 @@ func main() {
 
 	// fmt.Println(search(arr,"გამარჯობა"))
 
-
 	handlerFunc := func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("GET request")
+		// fmt.Println("GET request")
 		word := r.URL.Query().Get("word")
 		data := map[string]interface{}{
-			"words": search(arr,word),
+			"words": search(arr, word),
 		}
 
-		jsonData,err := json.Marshal(data)
+		jsonData, err := json.Marshal(data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Write(jsonData)
 
-    }
+	}
 
+	http.HandleFunc("/api/search", handlerFunc)
 
-    http.HandleFunc("/api/search", handlerFunc)
-
-    fs := http.FileServer(http.Dir("static"))
+	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/", fs)
 
-    http.ListenAndServe(":8000", nil)
+	http.ListenAndServe(":8080", nil)
 
-  }
+}
