@@ -125,8 +125,8 @@ func main() {
 
 	http.HandleFunc("/api/search", handlerFunc)
 
-	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/", fs)
+// 	fs := http.FileServer(http.Dir("static"))
+// 	http.Handle("/", fs)
 
 	http.ListenAndServe(":8080", nil)
 
